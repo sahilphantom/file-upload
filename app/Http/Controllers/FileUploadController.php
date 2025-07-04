@@ -9,35 +9,48 @@ class FileUploadController extends Controller
 {
     public function index()
     {
-        $uploads = FileUpload::latest()->get();
+        $uploads = FileUpload::with('media')->latest()->get();
         return view('file_upload.index', compact('uploads'));
     }
 
     public function store(Request $request)
     {
-        // ✅ Validation
         $request->validate([
-            'file' => 'required|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:2048', // Max 2MB
+            'file' => 'required|file|mimes:jpg,jpeg,png,gif,webp,pdf|max:2048',
+            'disk' => 'required|in:public,local',
         ]);
 
         try {
-            // Store file first
-            $path = $request->file('file')->store('uploads', 'public');
+            $disk = $request->disk;
 
-            // Create record with file_path and status together
-            FileUpload::create([
-                'file_path' => $path,
-                'status' => 'uploaded',
+            // Create DB record first
+            $upload = FileUpload::create([
+                'disk' => $disk,
+                'status' => 'pending',
             ]);
 
-            return back()->with('success', 'File uploaded successfully!');
+            // Attach media
+            $upload->addMedia($request->file('file'))
+                ->toMediaCollection('files', $disk);
+
+            // Update status
+            $upload->update(['status' => 'uploaded']);
+
+            return back()->with('success', 'File uploaded!');
         } catch (\Exception $e) {
-            // Optional: log or create failed record if you want
-            // FileUpload::create([
-            //     'file_path' => '',
-            //     'status' => 'failed',
-            // ]);
             return back()->with('error', 'Upload failed: ' . $e->getMessage());
+        }
+    }
+
+    public function destroy(FileUpload $fileUpload)
+    {
+        try {
+            $fileUpload->clearMediaCollection('files');
+            $fileUpload->delete();
+
+            return back()->with('success', 'File deleted!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Delete failed: ' . $e->getMessage());
         }
     }
 }

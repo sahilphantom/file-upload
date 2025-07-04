@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>My App</title>
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}"> {{-- optional --}}
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100 min-h-screen flex flex-col">
 
@@ -12,14 +12,11 @@
     </header>
 
     <main class="flex-1 container mx-auto px-4 py-8">
-        <div class="bg-gray-800 bg-opacity-70 backdrop-blur-md rounded-2xl shadow-xl p-8 max-w-3xl mx-auto">
-            @yield('content')
-        </div>
+        @yield('content')
     </main>
 
     <footer class="bg-gray-900 border-t border-gray-700 py-4 text-center text-sm text-gray-400">
-        <p>&copy; {{ date('Y') }} My App</p>
+        &copy; {{ date('Y') }} My App
     </footer>
-
 </body>
 </html>

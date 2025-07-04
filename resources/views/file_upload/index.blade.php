@@ -1,49 +1,57 @@
-@extends('layouts.app') {{-- Use your layout --}}
-@vite(['resources/css/app.css', 'resources/js/app.js']) {{-- Include your CSS and JS --}}
-@section('content')
-<div class="max-w-xl mx-auto bg-gray-800 bg-opacity-80 backdrop-blur-md rounded-2xl shadow-xl p-6 space-y-4">
+@extends('layouts.app')
 
-    <h2 class="text-2xl font-semibold text-center text-white">📁 File Upload</h2>
+@section('content')
+<div class="max-w-xl mx-auto p-4">
+    <h2 class="text-xl font-bold mb-4">File Upload</h2>
 
     @if(session('success'))
-        <div class="bg-green-500 bg-opacity-20 text-green-300 p-2 rounded text-sm">
-            {{ session('success') }}
-        </div>
+        <div class="bg-green-100 text-green-800 p-2 rounded mb-2">{{ session('success') }}</div>
     @elseif(session('error'))
-        <div class="bg-red-500 bg-opacity-20 text-red-300 p-2 rounded text-sm">
-            {{ session('error') }}
-        </div>
+        <div class="bg-red-100 text-red-800 p-2 rounded mb-2">{{ session('error') }}</div>
     @endif
 
-    <form action="{{ route('file-upload.store') }}" method="POST" enctype="multipart/form-data" class="space-y-3">
+    <form action="{{ route('file-upload.store') }}" method="POST" enctype="multipart/form-data" class="mb-4">
         @csrf
-        <input type="file" name="file" required 
-            class="block w-full rounded-lg border border-gray-600 bg-gray-700 text-gray-200 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-
+        <input type="file" name="file" required class="border p-2 rounded w-full mb-2">
+        <select name="disk" class="border p-2 rounded w-full mb-2">
+            <option value="public">Public</option>
+            <option value="local">Local</option>
+        </select>
         @error('file')
-            <div class="text-red-400 text-sm">{{ $message }}</div>
+            <div class="text-red-600">{{ $message }}</div>
         @enderror
-
-        <button type="submit" 
-            class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold py-2 rounded-lg shadow-md transition duration-200">
-            Upload
-        </button>
+        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Upload</button>
     </form>
 
-    <div>
-        <h3 class="font-semibold text-gray-300 mb-2">Upload Status</h3>
-        <ul class="list-disc pl-4 space-y-1 text-gray-300 text-sm">
-            @forelse($uploads as $upload)
-                <li>
-                    <span class="font-mono break-all">{{ $upload->file_path }}</span> -
-                    <span class="{{ $upload->status == 'uploaded' ? 'text-green-400' : ($upload->status == 'failed' ? 'text-red-400' : 'text-yellow-400') }}">
-                        {{ ucfirst($upload->status) }}
+    <h3 class="font-semibold mb-2">Uploaded Files</h3>
+    <ul class="space-y-2">
+        @forelse($uploads as $upload)
+            @php
+                $media = $upload->getFirstMedia('files');
+            @endphp
+            <li class="flex items-center space-x-3">
+                @if($media && str_starts_with($media->mime_type, 'image/'))
+                    <img src="{{ $media->getUrl('thumb') }}" class="w-12 h-12 rounded object-cover">
+                @else
+                    <span class="w-12 h-12 flex items-center justify-center bg-gray-200 text-gray-600 rounded">
+                        📄
                     </span>
-                </li>
-            @empty
-                <li class="text-gray-500">No uploads yet.</li>
-            @endforelse
-        </ul>
-    </div>
+                @endif
+                <a href="{{ $media->getUrl() }}" target="_blank" class="text-blue-500 underline">
+                    {{ $media->file_name }}
+                </a>
+                <span class="ml-auto {{ $upload->status == 'Uploaded' ? 'text-green-500' : 'text-red-500' }}">
+                    {{ $upload->status }}
+                </span>
+                <form action="{{ route('file-upload.destroy', $upload) }}" method="POST">
+                    @csrf
+                    @method('DELETE')
+                    <button class="text-red-500 hover:underline ml-2">Delete</button>
+                </form>
+            </li>
+        @empty
+            <li class="text-gray-500">No uploads yet.</li>
+        @endforelse
+    </ul>
 </div>
 @endsection
