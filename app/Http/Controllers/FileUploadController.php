@@ -13,42 +13,53 @@ class FileUploadController extends Controller
         return view('file_upload.index', compact('uploads'));
     }
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'file' => 'required|file|mimes:jpg,jpeg,png,gif,webp,pdf|max:2048',
-            'disk' => 'required|in:public,local',
+  public function store(Request $request)
+{
+    $request->validate([
+        'file' => 'required|file|max:2048',
+        'disk' => 'required|in:public,local',
+    ]);
+
+    try {
+        $userChosenDisk = $request->disk;       // keep what user selected (public or local)
+        $uploadedFile = $request->file('file');
+
+        // Always store media files & thumbnails on 'public' disk so they are visible in browser
+        $mediaDisk = 'public';
+
+        // Create DB entry, keep user-selected disk in DB
+        $fileUpload = FileUpload::create([
+            'disk' => $userChosenDisk,
+            'status' => 'uploaded',
+            'file_path' => '', // will fill below
         ]);
 
-        try {
-            $disk = $request->disk;
+        // Add media to Spatie on 'public' disk, thumbnails will be accessible
+        $media = $fileUpload->addMedia($uploadedFile)
+                            ->toMediaCollection('uploads', $mediaDisk);
 
-            // Create DB record first
-            $upload = FileUpload::create([
-                'disk' => $disk,
-                'status' => 'pending',
-            ]);
+        // Save actual file name in DB
+        $fileUpload->update([
+            'file_path' => $media ? $media->file_name : '',
+        ]);
 
-            // Attach media
-            $upload->addMedia($request->file('file'))
-                ->toMediaCollection('files', $disk);
-
-            // Update status
-            $upload->update(['status' => 'uploaded']);
-
-            return back()->with('success', 'File uploaded!');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Upload failed: ' . $e->getMessage());
-        }
+        return back()->with('success', 'File uploaded and thumbnail generated!');
+    } catch (\Exception $e) {
+        return back()->with('error', 'Upload failed: ' . $e->getMessage());
     }
+}
+
 
     public function destroy(FileUpload $fileUpload)
     {
         try {
-            $fileUpload->clearMediaCollection('files');
+            // Remove from Spatie media library
+            $fileUpload->clearMediaCollection('uploads');
+
+            // Remove DB entry
             $fileUpload->delete();
 
-            return back()->with('success', 'File deleted!');
+            return back()->with('success', 'File and thumbnail deleted!');
         } catch (\Exception $e) {
             return back()->with('error', 'Delete failed: ' . $e->getMessage());
         }

@@ -9,6 +9,7 @@ return new class extends Migration {
     {
         Schema::create('file_uploads', function (Blueprint $table) {
             $table->id();
+            $table->string('file_path');
             $table->string('disk')->default('public');
             $table->enum('status', ['pending', 'uploaded', 'failed'])->default('pending');
             $table->timestamps();
